@@ -7,9 +7,10 @@
     "email": "chris@printf.net",
     "url": "http://printf.net/"
   },
+  "type": "module",
   "bin": {
-    "git-remote-gittorrent": "./git-remote-gittorrent",
-    "gittorrentd": "./gittorrentd"
+    "git-remote-gittorrent": "./git-remote-gittorrent.js",
+    "gittorrentd": "./gittorrentd.js"
   },
   "bugs": {
     "url": "https://github.com/cjb/gittorrent/issues"
