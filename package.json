@@ -12,6 +12,9 @@
     "git-remote-gittorrent": "./git-remote-gittorrent.js",
     "gittorrentd": "./gittorrentd.js"
   },
+  "scripts": {
+    "lint": "standard --fix *.js"
+  },
   "bugs": {
     "url": "https://github.com/cjb/gittorrent/issues"
   },
