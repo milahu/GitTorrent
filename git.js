@@ -1,24 +1,24 @@
 #!/usr/bin/env node
 
-var spawn = require('child_process').spawn
+import { spawn } from 'child_process'
 
-// Returns a process running `git ls-remote <url>` that calls `with_ref` on
+// Returns a process running `git ls-remote <url>` that calls `withRef` on
 // each parsed reference. The url may point to a local repository.
-function ls (url, with_ref) {
-  var ls = spawn('git', ['ls-remote', url])
+function ls (url, withRef) {
+  const ls = spawn('git', ['ls-remote', url])
   ls.stdout.on('data', function (lines) {
     lines.toString().split('\n').forEach(function (line) {
       if (!line || line === '') {
         return
       }
       line = line.split('\t')
-      var sha = line[0]
-      var branch = line[1]
+      const sha = line[0]
+      const branch = line[1]
       if (sha.length !== 40) {
         console.warn('[git ls-remote] expected a 40-byte sha: ' + sha + '\n')
         console.warn('[git ls-remote] on line: ' + line.join('\t'))
       }
-      with_ref(sha, branch)
+      withRef(sha, branch)
     })
   })
   return ls
@@ -34,10 +34,10 @@ function pad4 (num) {
 
 // Invokes `$ git-upload-pack --strict <dir>`, communicates haves and wants and
 // emits 'ready' when stdout becomes a pack file stream.
-function upload_pack (dir, want, have) {
+function uploadPack (dir, want, have) {
   // reference:
   // https://github.com/git/git/blob/b594c975c7e865be23477989d7f36157ad437dc7/Documentation/technical/pack-protocol.txt#L346-L393
-  var upload = spawn('git-upload-pack', ['--strict', dir])
+  const upload = spawn('git-upload-pack', ['--strict', dir])
   writeln('want ' + want)
   writeln()
   if (have) {
@@ -52,12 +52,12 @@ function upload_pack (dir, want, have) {
   //
   // We use `mode` to keep track of state and formulate responses. It returns
   // `false` when we should stop reading.
-  var mode = list
+  let mode = list
   upload.stdout.on('readable', function () {
     while (true) {
-      var line = getline()
+      const line = getline()
       if (line === null) {
-        return  // to wait for more output
+        return // to wait for more output
       }
       if (!mode(line)) {
         upload.stdout.removeAllListeners('readable')
@@ -67,30 +67,30 @@ function upload_pack (dir, want, have) {
     }
   })
 
-  var getline_len = null
-  // Extracts exactly one line from the stream. Uses `getline_len` in case the
+  let getLineLen = null
+  // Extracts exactly one line from the stream. Uses `getLineLen` in case the
   // whole line could not be read.
   function getline () {
     // Format: '####line' where '####' represents the length of 'line' in hex.
-    if (!getline_len) {
-      getline_len = upload.stdout.read(4)
-      if (getline_len === null) {
+    if (!getLineLen) {
+      getLineLen = upload.stdout.read(4)
+      if (getLineLen === null) {
         return null
       }
-      getline_len = parseInt(getline_len, 16)
+      getLineLen = parseInt(getLineLen, 16)
     }
 
-    if (getline_len === 0) {
+    if (getLineLen === 0) {
       return ''
     }
 
     // Subtract by the four we just read, and the terminating newline.
-    var line = upload.stdout.read(getline_len - 4 - 1)
+    const line = upload.stdout.read(getLineLen - 4 - 1)
     if (!line) {
       return null
     }
-    getline_len = null
-    upload.stdout.read(1)  // And discard the newline.
+    getLineLen = null
+    upload.stdout.read(1) // And discard the newline.
     return line.toString()
   }
 
@@ -98,25 +98,25 @@ function upload_pack (dir, want, have) {
   // `git ls-remote`, so wait for it to signal the end.
   function list (line) {
     if (line === '') {
-      mode = have ? ack_objects_continue : wait_for_nak
+      mode = have ? ackObjectsContinue : waitForNak
     }
     return true
   }
 
   // If we only gave wants, git should respond with 'NAK', then the pack file.
-  function wait_for_nak (line) {
+  function waitForNak (line) {
     return line !== 'NAK'
   }
 
   // With haves, we wait for 'ACK', but only if not ending in 'continue'.
-  function ack_objects_continue (line) {
+  function ackObjectsContinue (line) {
     return !(line.search(/^ACK/) !== -1 && line.search(/continue$/) === -1)
   }
 
   // Writes one line to stdin so git-upload-pack can understand.
   function writeln (line) {
     if (line) {
-      var len = pad4(line.length + 4 + 1)  // Add one for the newline.
+      const len = pad4(line.length + 4 + 1) // Add one for the newline.
       upload.stdin.write(len + line + '\n')
     } else {
       upload.stdin.write('0000')
@@ -126,4 +126,6 @@ function upload_pack (dir, want, have) {
   return upload
 }
 
-module.exports = {ls: ls, upload_pack: upload_pack}
+const git = { ls, uploadPack }
+
+export default git

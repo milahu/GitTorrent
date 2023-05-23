@@ -1,4 +1,6 @@
-module.exports = require('rc')('gittorrent', {
+import rc from 'rc'
+
+export default rc('gittorrent', {
   dht: {
     bootstrap: [
       'dht.gittorrent.org:6881',

@@ -1,51 +1,53 @@
 #!/usr/bin/env node
 
-var DHT = require('bittorrent-dht')
-var EC = require('elliptic').ec
-var ed25519 = new EC('ed25519')
-var exec = require('child_process').exec
-var glob = require('glob')
-var fs = require('fs')
-var hat = require('hat')
-var net = require('net')
-var Protocol = require('bittorrent-protocol')
-var spawn = require('child_process').spawn
-var ut_gittorrent = require('ut_gittorrent')
-var ut_metadata = require('ut_metadata')
-var WebTorrent = require('webtorrent')
-var zeroFill = require('zero-fill')
-var config = require('./config')
-var git = require('./git')
+import DHT from 'bittorrent-dht'
+import elliptic from 'elliptic'
+import { glob } from 'glob'
+import fs from 'fs'
+import hat from 'hat'
+import net from 'net'
+import Protocol from 'bittorrent-protocol'
+import utGittorrent from 'ut_gittorrent'
+import utMetadata from 'ut_metadata'
+import WebTorrent from 'webtorrent'
+import zeroFill from 'zero-fill'
+import config from './config.js'
+import git from './git.js'
 
 // BitTorrent client version string (used in peer ID).
 // Generated from package.json major and minor version. For example:
 //   '0.16.1' -> '0016'
 //   '1.2.5' -> '0102'
 //
-var VERSION = require('./package.json').version
-  .match(/([0-9]+)/g).slice(0, 2).map(zeroFill(2)).join('')
+import { createRequire } from 'module'
+const { ec: EC } = elliptic
+
+const ed25519 = new EC('ed25519')
+const require = createRequire(import.meta.url)
+const pckgJSON = require('./package.json')
+const VERSION = pckgJSON.version.match(/([0-9]+)/g).slice(0, 2).map(zeroFill(2)).join('')
 
 function die (error) {
   console.error(error)
   process.exit(1)
 }
 
-var dht = new DHT({
+const dht = new DHT({
   bootstrap: config.dht.bootstrap
 })
 dht.listen(config.dht.listen)
 
-var announcedRefs = {
+const announcedRefs = {
 }
-var userProfile = {
+const userProfile = {
   repositories: {}
 }
 
-var key = create_or_read_keyfile()
+const key = createOrReadKeyFile()
 
-function create_or_read_keyfile () {
+function createOrReadKeyFile () {
   if (!fs.existsSync(config.key)) {
-    var keypair = new EC('ed25519').genKeyPair()
+    const keypair = new EC('ed25519').genKeyPair()
     fs.writeFileSync(config.key, JSON.stringify({
       pub: keypair.getPublic('hex'),
       priv: keypair.getPrivate('hex')
@@ -53,7 +55,7 @@ function create_or_read_keyfile () {
   }
 
   // Okay, now the file exists, whether created here or not.
-  var key = JSON.parse(fs.readFileSync(config.key).toString())
+  const key = JSON.parse(fs.readFileSync(config.key).toString())
   return ed25519.keyPair({
     priv: key.priv,
     privEnc: 'hex',
@@ -65,28 +67,28 @@ function create_or_read_keyfile () {
 function bpad (n, buf) {
   if (buf.length === n) return buf
   if (buf.length < n) {
-    var b = new Buffer(n)
+    const b = Buffer.alloc(n)
     buf.copy(b, n - buf.length)
-    for (var i = 0; i < n - buf.length; i++) b[i] = 0
+    for (let i = 0; i < n - buf.length; i++) b[i] = 0
     return b
   }
 }
 
-var head = ''
+let head = ''
 
 dht.on('ready', function () {
   // Spider all */.git dirs and announce all refs.
-  var repos = glob.sync('*/{,.git/}git-daemon-export-ok', {strict: false})
-  var count = repos.length
+  const repos = glob.sync('*/{,.git/}git-daemon-export-ok', { strict: false })
+  let count = repos.length
   repos.forEach(function (repo) {
     console.log('in repo ' + repo)
     repo = repo.replace(/git-daemon-export-ok$/, '')
     console.log(repo)
 
-    var reponame = repo.replace(/\/.git\/$/, '')
+    const reponame = repo.replace(/\/.git\/$/, '')
     userProfile.repositories[reponame] = {}
 
-    var ls = git.ls(repo, function (sha, ref) {
+    const ls = git.ls(repo, function (sha, ref) {
       // FIXME: Can't pull in too many branches, so only do heads for now.
       if (ref !== 'HEAD' && !ref.match(/^refs\/heads\//)) {
         return
@@ -108,7 +110,7 @@ dht.on('ready', function () {
     ls.stdout.on('end', function () {
       count--
       if (count <= 0) {
-        publish_mutable_key()
+        publishMutableKey()
       }
     })
     ls.on('exit', function (err) {
@@ -118,23 +120,24 @@ dht.on('ready', function () {
     })
   })
 
-  function publish_mutable_key () {
-    var json = JSON.stringify(userProfile)
+  function publishMutableKey () {
+    const json = JSON.stringify(userProfile)
     if (json.length > 950) {
       console.error("Can't publish mutable key: doesn't fit in 950 bytes.")
       return false
     }
-    var value = new Buffer(json.length)
+    const value = Buffer.alloc(json.length)
     value.write(json)
-    var sig = key.sign(value)
-    var opts = {
-      k: bpad(32, Buffer(key.getPublic().x.toArray())),
+    const sig = key.sign(value)
+    const opts = {
+      k: bpad(32, Buffer.from(key.getPublic().x.toArray())),
       seq: 0,
       v: value,
       sig: Buffer.concat([
-        bpad(32, Buffer(sig.r.toArray())),
-        bpad(32, Buffer(sig.s.toArray()))
-    ])}
+        bpad(32, Buffer.from(sig.r.toArray())),
+        bpad(32, Buffer.from(sig.s.toArray()))
+      ])
+    }
     console.log(json)
     dht.put(opts, function (errors, hash) {
       console.error('errors=', errors)
@@ -143,14 +146,14 @@ dht.on('ready', function () {
   }
 
   net.createServer(function (socket) {
-    var wire = new Protocol()
-    wire.use(ut_gittorrent())
-    wire.use(ut_metadata())
+    const wire = new Protocol()
+    wire.use(utGittorrent())
+    wire.use(utMetadata())
     socket.pipe(wire).pipe(socket)
     wire.on('handshake', function (infoHash, peerId) {
       console.log('Received handshake for ' + infoHash.toString('hex'))
-      var myPeerId = new Buffer('-WW' + VERSION + '-' + hat(48), 'utf8')
-      wire.handshake(new Buffer(infoHash), new Buffer(myPeerId))
+      const myPeerId = Buffer.from('-WW' + VERSION + '-' + hat(48), 'utf8')
+      wire.handshake(Buffer.from(infoHash), Buffer.from(myPeerId))
     })
     wire.ut_gittorrent.on('generatePack', function (sha) {
       console.error('calling git pack-objects for ' + sha)
@@ -158,21 +161,21 @@ dht.on('ready', function () {
         console.error('Asked for an unknown sha: ' + sha)
         return
       }
-      var directory = announcedRefs[sha]
-      var have = null
+      const directory = announcedRefs[sha]
+      let have = null
       if (sha !== head) {
         have = head
       }
-      var pack = git.upload_pack(directory, sha, have)
+      const pack = git.uploadPack(directory, sha, have)
       pack.stderr.pipe(process.stderr)
       pack.on('ready', function () {
-        var filename = sha + '.pack'
-        var stream = fs.createWriteStream(filename)
+        const filename = sha + '.pack'
+        const stream = fs.createWriteStream(filename)
         pack.stdout.pipe(stream)
         stream.on('close', function () {
           console.error('Finished writing ' + filename)
-          var webtorrent = new WebTorrent({
-            dht: {bootstrap: config.dht.bootstrap},
+          const webtorrent = new WebTorrent({
+            dht: { bootstrap: config.dht.bootstrap },
             tracker: false
           })
           webtorrent.seed(filename, function onTorrent (torrent) {
