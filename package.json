@@ -15,24 +15,23 @@
     "url": "https://github.com/cjb/gittorrent/issues"
   },
   "dependencies": {
-    "bittorrent-dht": "git://github.com/cjb/bittorrent-dht#dht-store",
-    "bittorrent-protocol": "^1.5.7",
-    "bittorrent-swarm": "^5.0.2",
-    "chalk": "^1.0.0",
-    "elliptic": "^3.0.3",
-    "glob": "^5.0.6",
+    "bittorrent-dht": "^11.0.4",
+    "bittorrent-protocol": "^4.1.6",
+    "bittorrent-swarm": "^8.0.0",
+    "chalk": "^5.2.0",
+    "elliptic": "^6.5.4",
+    "glob": "^10.2.6",
     "hat": "^0.0.3",
-    "inherits": "^2.0.1",
-    "magnet-uri": "^4.0.0",
-    "prettyjson": "^1.1.2",
+    "magnet-uri": "^7.0.3",
+    "prettyjson": "^1.2.5",
     "rc": "^1.0.3",
-    "ut_gittorrent": "^0.1.0",
-    "ut_metadata": "^2.7.3",
-    "webtorrent": "^0.48.0",
-    "zero-fill": "^2.2.1"
+    "ut_gittorrent": "github:dzdidi/ut_gittorrent",
+    "ut_metadata": "^4.0.2",
+    "webtorrent": "^2.0.18",
+    "zero-fill": "^2.2.4"
   },
   "devDependencies": {
-    "standard": "^3.1.1"
+    "standard": "^17.0.0"
   },
   "homepage": "http://gittorrent.org",
   "keywords": [
