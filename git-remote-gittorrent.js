@@ -79,6 +79,12 @@ function talkToGit (refs) {
 
 let remotename = process.argv[2]
 let url = process.argv[3]
+
+if (!remotename || !url) {
+  console.error('error: missing arguments. usage: git-remote-gittorrent $remotename $url')
+  process.exit(1)
+}
+
 const matches = url.match(/gittorrent:\/\/([a-f0-9]{40})\/(.*)/)
 const refs = {} // Maps branch names to sha's.
 if (matches) {
