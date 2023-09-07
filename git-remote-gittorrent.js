@@ -10,7 +10,7 @@ import Swarm from 'bittorrent-swarm'
 import utGittorren from 'ut_gittorrent'
 import WebTorrent from 'webtorrent'
 import zeroFill from 'zero-fill'
-import config from './config.js'
+import { getConfig } from './get-config.js'
 import git from './git.js'
 
 // BitTorrent client version string (used in peer ID).
@@ -30,6 +30,8 @@ function die (error) {
 
 // Gotta enable color manually because stdout isn't a tty.
 const chalk = new Chalk.constructor({ enabled: true })
+
+const [config, configDir] = await getConfig()
 
 const dht = new DHT({
   bootstrap: config.dht.bootstrap

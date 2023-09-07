@@ -1,4 +1,4 @@
-import rc from 'rc'
+const rc = globalThis.rc
 
 export default rc('gittorrent', {
   dht: {

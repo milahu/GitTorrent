@@ -11,8 +11,9 @@ import utGittorrent from 'ut_gittorrent'
 import utMetadata from 'ut_metadata'
 import WebTorrent from 'webtorrent'
 import zeroFill from 'zero-fill'
-import config from './config.js'
 import git from './git.js'
+import { getConfig } from './get-config.js'
+import path from 'path'
 
 // BitTorrent client version string (used in peer ID).
 // Generated from package.json major and minor version. For example:
@@ -32,6 +33,8 @@ function die (error) {
   process.exit(1)
 }
 
+const [config, configDir] = await getConfig()
+
 const dht = new DHT({
   bootstrap: config.dht.bootstrap
 })
@@ -43,19 +46,25 @@ const userProfile = {
   repositories: {}
 }
 
+const keyPath = path.join(configDir, config.key)
+
+console.log('loading keyfile: ' + keyPath)
+
 const key = createOrReadKeyFile()
 
 function createOrReadKeyFile () {
-  if (!fs.existsSync(config.key)) {
+  if (!fs.existsSync(keyPath)) {
     const keypair = new EC('ed25519').genKeyPair()
-    fs.writeFileSync(config.key, JSON.stringify({
+    fs.writeFileSync(keyPath, JSON.stringify({
       pub: keypair.getPublic('hex'),
       priv: keypair.getPrivate('hex')
     }))
+    // fix: key file has mode 0o051
+    fs.chmodSync(keyPath, 0o600)
   }
 
   // Okay, now the file exists, whether created here or not.
-  const key = JSON.parse(fs.readFileSync(config.key).toString())
+  const key = JSON.parse(fs.readFileSync(keyPath).toString())
   return ed25519.keyPair({
     priv: key.priv,
     privEnc: 'hex',
